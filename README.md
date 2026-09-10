@@ -16,6 +16,8 @@
 [![Featured by Command Line](https://img.shields.io/badge/Featured-Command%20Line-5E5E5E)](https://commandline.microsoft.com/tokenops-real-time-run-scoped-cost-control-ai-agents/)
 [![Featured by AI Engineer World's Fair](https://img.shields.io/badge/Featured-AI%20Engineer%20World's%20Fair-FF0000?logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=GJX19pNhmSw)
 
+<sub>Participant in the <a href="https://github.com/open-source/github-secure-open-source-fund">GitHub Secure Open Source Fund</a>, Session 5</sub>
+
 <sub>Built by <b><a href="https://www.linkedin.com/in/susheemkoul/">Susheem Koul</a></b> and <b><a href="https://www.linkedin.com/in/tisha-chawla/">Tisha Chawla</a></b></sub>
 
 <table><tr><td>
@@ -325,6 +327,7 @@ tests/                     # unit + e2e
   [LinkedIn](https://www.linkedin.com/posts/microsoft-developers_who-spent-all-the-tokens-tokenops-gives-activity-7499191980715982848-224b) and [X](https://x.com/msdev/status/2093425027500978292).
 - **[Who spent all the tokens? Real-time, run-scoped cost control for AI agents](https://commandline.microsoft.com/tokenops-real-time-run-scoped-cost-control-ai-agents/)**: *Command Line*, a Microsoft publication.
 - **[FinOps for AI Agents: Who Spent All the Tokens?](https://www.youtube.com/watch?v=GJX19pNhmSw)**: talk at the **AI Engineer World's Fair**, San Francisco.
+- **Selected to participate in the [GitHub Secure Open Source Fund](https://github.com/open-source/github-secure-open-source-fund)** (Session 5), GitHub Security Lab's open source security program.
 
 ## 🛟 Support
 
