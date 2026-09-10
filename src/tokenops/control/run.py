@@ -264,6 +264,10 @@ def tokenops_run(
                 )
     finally:
         clear_run_context()
+        if open_ledger_run:
+            # Drop this process's RunState so a long-lived / shared-governor process
+            # does not leak per-run window state.
+            gov.ledger.close_run(reg.run_id)
 
 
 # Preferred alternate name from design notes §5.

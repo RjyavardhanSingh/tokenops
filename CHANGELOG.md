@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `Ledger.record` no longer writes a zero-delta spend row for non-priced crossings
+  (tool calls, un-rolled-up delegates) — a free crossing is a *step*, not spend. The
+  cost ledger only moves on priced events (#118).
+
+### Added
+
+- `Ledger.close_run(run_id)` — drops the per-process `RunState`; called by
+  `tokenops_run` on scope exit so a long-lived / shared-governor process does not
+  accumulate per-run window state (#115).
+
 ## [0.2.1] - 2026-09-04
 
 ### Changed

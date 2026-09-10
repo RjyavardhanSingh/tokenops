@@ -149,3 +149,34 @@ def test_fail_closed_on_unknown_model():
                 usage=Usage(input=1),
             )
         )
+
+
+def test_close_run_drops_state_idempotently():
+    ledger, _ = _ledger()
+    ledger.open_run("run-1")
+    ledger.record(
+        Observation(
+            attr=make_attr(), node_type="llm", boundary_id="chat", ts=1.0,
+            provider="openai", model="gpt-4o-mini", usage=Usage(input=10, output=5),
+        )
+    )
+    assert "run-1" in ledger.runs
+    ledger.close_run("run-1")
+    assert "run-1" not in ledger.runs
+    ledger.close_run("run-1")  # idempotent — no raise
+    assert ledger.step_count("run-1") == 0
+
+
+def test_zero_cost_crossing_writes_no_spend():
+    ledger, cap = _ledger()
+    ledger.open_run("run-1")
+    # a tool crossing: node_type="tool", no usage -> cost 0
+    step = ledger.record(
+        Observation(
+            attr=make_attr(), node_type="tool", boundary_id="search", ts=1.0,
+            input={"name": "search"}, output={"snippet": "..."},
+        )
+    )
+    assert step.step == 1                      # step still counted
+    assert ledger.cost_micros("run-1") == 0    # run total untouched
+    assert ledger.budget_left(cap.budget_id, "run:run-1") == cap.limit_micros
