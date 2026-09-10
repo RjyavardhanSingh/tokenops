@@ -60,7 +60,10 @@ def test_idempotent_replay(any_backend):
 
 def test_admit_complete(any_backend):
     ev = lambda k, kind: {  # noqa: E731
-        "kind": kind, "idempotency_key": k, "run_id": RUN, "segment_key": SEG,
+        "kind": kind,
+        "idempotency_key": k,
+        "run_id": RUN,
+        "segment_key": SEG,
     }
     any_backend.apply_events([ev("i1", "admit"), ev("i2", "admit")])
     assert any_backend.read_state(_precheck()).inflight[SEG] == 2
@@ -70,9 +73,16 @@ def test_admit_complete(any_backend):
 
 def test_step_window(any_backend):
     step = lambda seq, cum: {  # noqa: E731
-        "kind": "step", "idempotency_key": f"{RUN}:a:{seq}:step", "run_id": RUN,
-        "agent": "a", "seq": seq, "node_type": "llm", "boundary_id": "a.chat",
-        "cost_micros": 10_500, "cum_spent_micros": cum, "ts": float(seq),
+        "kind": "step",
+        "idempotency_key": f"{RUN}:a:{seq}:step",
+        "run_id": RUN,
+        "agent": "a",
+        "seq": seq,
+        "node_type": "llm",
+        "boundary_id": "a.chat",
+        "cost_micros": 10_500,
+        "cum_spent_micros": cum,
+        "ts": float(seq),
     }
     any_backend.apply_events([step(1, 10_500), step(2, 21_000)])
     win = any_backend.read_state(PrecheckRequest(run_id=RUN, want=["window"])).window
@@ -82,10 +92,17 @@ def test_step_window(any_backend):
 
 
 def test_halt_mark_visible(any_backend):
-    any_backend.apply_events([{
-        "kind": "halt_mark", "idempotency_key": "h", "run_id": RUN,
-        "reason": "step_cap: 20", "detector": "step_cap",
-    }])
+    any_backend.apply_events(
+        [
+            {
+                "kind": "halt_mark",
+                "idempotency_key": "h",
+                "run_id": RUN,
+                "reason": "step_cap: 20",
+                "detector": "step_cap",
+            }
+        ]
+    )
     st = any_backend.read_state(PrecheckRequest(run_id=RUN, want=["halt"]))
     assert st.halted is True and st.halt_reason == "step_cap: 20"
 
@@ -97,7 +114,9 @@ def test_unknown_kind_raises(any_backend):
 
 def test_missing_idempotency_key_raises(any_backend):
     with pytest.raises(Exception):  # noqa: B017
-        any_backend.apply_events([{"kind": "spent_add", "run_id": RUN, "delta_micros": 1, "targets": []}])
+        any_backend.apply_events(
+            [{"kind": "spent_add", "run_id": RUN, "delta_micros": 1, "targets": []}]
+        )
 
 
 def test_register_resolve_roundtrip(any_backend):

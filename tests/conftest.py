@@ -125,9 +125,12 @@ def fake_backend():
 def plane_app_factory():
     """Build a real control_plane.app over a throwaway SQLite file.
 
-    Yields a callable; every app it makes is torn down (connections closed before the
-    temp dir is removed — open SQLite handles block unlink on Windows).
+    Skips the whole test when ``agentplane-control-plane`` (>= 0.2.0) is not installed
+    — it is not a hard dev dep (not on PyPI yet); ``pip install -e ".[dev,contract]"``
+    to run these. Yields a callable; every app it makes is torn down (connections
+    closed before the temp dir is removed — open SQLite handles block unlink on Windows).
     """
+    pytest.importorskip("control_plane", reason="install agentplane-control-plane>=0.2.0")
     made: list[tuple] = []
 
     def _make(**settings_kw):
@@ -177,14 +180,19 @@ def http_backend(plane_app_factory):
 
 
 @pytest.fixture(params=["fake", "http"])
-def any_backend(request, plane_app_factory):
-    """Parametrised over both backends — for the verified-fake contract suite."""
+def any_backend(request):
+    """Parametrised over both backends — for the verified-fake contract suite.
+
+    The ``fake`` param always runs; the ``http`` param resolves ``plane_app_factory``
+    lazily, so it skips (not errors) when the real plane is not installed.
+    """
     if request.param == "fake":
         from fakes import FakeLedgerBackend
 
         yield FakeLedgerBackend()
         return
-    backend, client = _asgi_backend(plane_app_factory())
+    factory = request.getfixturevalue("plane_app_factory")
+    backend, client = _asgi_backend(factory())
     try:
         yield backend
     finally:

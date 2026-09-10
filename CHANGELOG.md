@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tests/fakes.py::FakeLedgerBackend` (in-memory) + `tests/test_ledger_backend_contract.py`
   — parametrised over the fake and a real `control_plane.app` (in-process ASGI) so the
   fake can't drift from the plane.
+- `[contract]` optional-dependency group (`agentplane-control-plane>=0.2.0`). Kept out
+  of `[dev]` while the 0.2.0 line is unreleased; the plane-backed tests
+  `importorskip("control_plane")`, so `[dev]`-only CI stays green.
 
 ## [0.2.1] - 2026-09-04
 

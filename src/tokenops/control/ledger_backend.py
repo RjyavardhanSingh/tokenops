@@ -72,7 +72,9 @@ class LedgerEvent(TypedDict, total=False):
 class PrecheckRequest:
     run_id: str
     segment_keys: list[str] = field(default_factory=list)
-    budgets: list[dict[str, str]] = field(default_factory=list)  # [{budget_id, segment_key, period}]
+    budgets: list[dict[str, str]] = field(
+        default_factory=list
+    )  # [{budget_id, segment_key, period}]
     want: list[str] = field(default_factory=lambda: ["spent", "inflight", "halt"])
 
 
@@ -81,7 +83,9 @@ class AggregateState:
     server_ts: float = 0.0
     halted: bool = False
     halt_reason: str | None = None
-    spent: dict[str, int] = field(default_factory=dict)  # "<budget_id>|<segment_key>|<period>" -> micros
+    spent: dict[str, int] = field(
+        default_factory=dict
+    )  # "<budget_id>|<segment_key>|<period>" -> micros
     inflight: dict[str, int] = field(default_factory=dict)  # segment_key -> count
     window: dict[str, Any] | None = None  # {step_count, recent, velocity_micros_per_step}
 
@@ -105,7 +109,9 @@ class LedgerBackend(Protocol):
 
     def read_state(self, req: PrecheckRequest) -> AggregateState: ...
 
-    def apply_events(self, events: list[LedgerEvent], *, durability: str = "sync") -> ApplyResult: ...
+    def apply_events(
+        self, events: list[LedgerEvent], *, durability: str = "sync"
+    ) -> ApplyResult: ...
 
     def register_run(
         self,
@@ -161,9 +167,7 @@ class HttpLedgerBackend:
         self._base_url = base_url.rstrip("/")
         self._owns_client = client is None
         key = (
-            api_key
-            or os.environ.get("CONTROL_PLANE_API_KEY")
-            or os.environ.get("TOKENOPS_API_KEY")
+            api_key or os.environ.get("CONTROL_PLANE_API_KEY") or os.environ.get("TOKENOPS_API_KEY")
         )
         headers = {"Authorization": f"Bearer {key}"} if key else {}
         self._client = client or httpx.Client(

@@ -81,8 +81,7 @@ class FakeLedgerBackend:
             out.halted, out.halt_reason = halted, reason
         if "spent" in req.want:
             out.spent = {
-                f"{b['budget_id']}|{b['segment_key']}|{b.get('period', 'lifetime')}":
-                self._spent.get(
+                f"{b['budget_id']}|{b['segment_key']}|{b.get('period', 'lifetime')}": self._spent.get(
                     (b["budget_id"], b["segment_key"], b.get("period", "lifetime")), 0
                 )
                 for b in req.budgets
@@ -115,9 +114,7 @@ class FakeLedgerBackend:
                 raise ValueError("event missing idempotency_key")
             if ev.get("kind") == "spent_add":
                 for t in ev.get("targets") or []:
-                    touched.add(
-                        (t["budget_id"], t["segment_key"], t.get("period", "lifetime"))
-                    )
+                    touched.add((t["budget_id"], t["segment_key"], t.get("period", "lifetime")))
             if ev.get("run_id"):
                 run_ids.add(str(ev["run_id"]))
             if key in self._seen:
@@ -150,10 +147,25 @@ class FakeLedgerBackend:
             )
             st["recent"] = (
                 st["recent"]
-                + [{k: ev.get(k) for k in (
-                    "agent", "seq", "node_type", "boundary_id", "cost_micros",
-                    "cum_spent_micros", "usage", "tags", "tool_signature", "result_hash", "ts",
-                ) if ev.get(k) is not None}]
+                + [
+                    {
+                        k: ev.get(k)
+                        for k in (
+                            "agent",
+                            "seq",
+                            "node_type",
+                            "boundary_id",
+                            "cost_micros",
+                            "cum_spent_micros",
+                            "usage",
+                            "tags",
+                            "tool_signature",
+                            "result_hash",
+                            "ts",
+                        )
+                        if ev.get(k) is not None
+                    }
+                ]
             )[-_RUN_STATE_WINDOW:]
             st["step_count"] += 1
             win = st["recent"]
