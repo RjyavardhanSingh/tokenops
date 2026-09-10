@@ -1,4 +1,8 @@
-"""E2E: prior run indexed → second run gets trajectory hint on first LLM dispatch."""
+"""E2E: prior run indexed → second run gets trajectory hint on first LLM dispatch.
+
+TEMPORARILY DISABLED: ``trajectory_hint`` is turned off in ``config.build_governor``
+during the remote-only control-plane work. Kept as the behaviour spec for re-enable.
+"""
 
 from __future__ import annotations
 
@@ -13,6 +17,11 @@ from tokenops.control.core import BoundaryStep, Observation, Usage
 from tokenops.control.models import PolicyInstance, RunRecord, RunRegistration
 from tokenops.control.trajectory.enqueue import enqueue_completed_run
 from tokenops.control.trajectory.scope import input_hash
+
+pytestmark = pytest.mark.skip(
+    reason="trajectory_hint disabled during remote-only control-plane work; "
+    "see config.build_governor"
+)
 
 HINT_GOVERNANCE = {
     "governance": {

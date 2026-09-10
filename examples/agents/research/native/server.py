@@ -152,6 +152,9 @@ def build_app():
                 rec = store.get_run(run_id)
                 if rec is not None:
                     gov_cfg = store.governance_config_for(AGENT).get("governance", {})
+                    # trajectory_hint is temporarily disabled (see config.build_governor);
+                    # hint_params stays None and the index enqueue below is a no-op until
+                    # it is re-enabled.
                     hint_params = (gov_cfg.get("policies") or {}).get("trajectory_hint")
                     if enqueue_completed_run(
                         store,

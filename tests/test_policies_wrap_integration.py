@@ -383,6 +383,10 @@ def test_it_output_runaway_retries_then_succeeds():
     assert len(scripted.calls) == 3
 
 
+@pytest.mark.skip(
+    reason="trajectory_hint disabled during remote-only control-plane work; "
+    "see config.build_governor"
+)
 def test_it_trajectory_hint_injects_playbook_on_pre_call(tmp_path):
     """trajectory_hint is opt-in + store-backed; seed index then wrap_complete."""
     from tokenops.control.models import RunRecord
