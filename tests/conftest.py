@@ -99,3 +99,93 @@ class CollectingControls:
 
     def of_kind(self, kind: ActionKind):
         return [a for a in self.actions if a.kind is kind]
+
+
+# --------------------------------------------------------------------------- #
+# LedgerBackend fixtures (remote-only rewrite)                                 #
+# --------------------------------------------------------------------------- #
+
+import gc
+import shutil
+import tempfile
+from pathlib import Path
+
+import pytest
+
+
+@pytest.fixture
+def fake_backend():
+    """In-memory FakeLedgerBackend — the unit-test backend."""
+    from fakes import FakeLedgerBackend
+
+    return FakeLedgerBackend()
+
+
+@pytest.fixture
+def plane_app_factory():
+    """Build a real control_plane.app over a throwaway SQLite file.
+
+    Yields a callable; every app it makes is torn down (connections closed before the
+    temp dir is removed — open SQLite handles block unlink on Windows).
+    """
+    made: list[tuple] = []
+
+    def _make(**settings_kw):
+        from control_plane.app import create_app
+        from control_plane.envelope_store import EnvelopeStore
+        from control_plane.settings import Settings
+        from control_plane.store import SqliteStore
+
+        td = tempfile.mkdtemp()
+        db = str(Path(td) / "cp.db")
+        store = SqliteStore(db, auto_seed=False)
+        env = EnvelopeStore(db)
+        app = create_app(store=store, envelopes=env, settings=Settings(db_path=db, **settings_kw))
+        made.append((store, env, td))
+        return app
+
+    yield _make
+
+    for store, env, td in made:
+        store.close()
+        env.close()
+        gc.collect()
+        shutil.rmtree(td, ignore_errors=True)
+
+
+def _asgi_backend(app):
+    """HttpLedgerBackend over an in-process control_plane.app.
+
+    ``httpx.ASGITransport`` is async-only, so we drive the app through FastAPI's
+    ``TestClient`` (a sync ``httpx.Client`` subclass backed by a portal).
+    """
+    from fastapi.testclient import TestClient
+
+    from tokenops.control.ledger_backend import HttpLedgerBackend
+
+    client = TestClient(app)
+    return HttpLedgerBackend("http://testserver", client=client), client
+
+
+@pytest.fixture
+def http_backend(plane_app_factory):
+    backend, client = _asgi_backend(plane_app_factory())
+    try:
+        yield backend
+    finally:
+        client.close()
+
+
+@pytest.fixture(params=["fake", "http"])
+def any_backend(request, plane_app_factory):
+    """Parametrised over both backends — for the verified-fake contract suite."""
+    if request.param == "fake":
+        from fakes import FakeLedgerBackend
+
+        yield FakeLedgerBackend()
+        return
+    backend, client = _asgi_backend(plane_app_factory())
+    try:
+        yield backend
+    finally:
+        client.close()

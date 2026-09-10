@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `tokenops.control.ledger_backend` — the `LedgerBackend` protocol and
+  `HttpLedgerBackend` for the remote-only rewrite (#118). One interface for every
+  control-plane read/write; `apply_events(list[LedgerEvent])` is the only write path
+  (a future buffered backend wraps it). Targets `agentplane-control-plane` 0.2.0
+  (`precheck` / `events:batch`). Not yet wired into `Ledger` / `ControlPlaneClient`.
+- `tests/fakes.py::FakeLedgerBackend` (in-memory) + `tests/test_ledger_backend_contract.py`
+  — parametrised over the fake and a real `control_plane.app` (in-process ASGI) so the
+  fake can't drift from the plane.
+
 ## [0.2.1] - 2026-09-04
 
 ### Changed

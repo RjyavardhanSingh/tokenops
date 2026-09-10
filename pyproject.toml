@@ -55,6 +55,10 @@ dev = [
   "mypy>=1.13",
   "pre-commit>=4.0",
   "types-PyYAML>=6.0",
+  # Real control plane for the verified-fake contract tests + e2e (in-process ASGI).
+  # Needs the 0.2.0 line; until it is on PyPI, install from git:
+  #   pip install "agentplane-control-plane @ git+https://github.com/theagentplane/control-plane@feat/ledger-precheck-events-batch"
+  "agentplane-control-plane>=0.2.0",
 ]
 examples = [
   "ddgs>=9.0",
