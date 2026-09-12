@@ -58,8 +58,18 @@ def tokenops_config_steering(*, limit_micros: int, max_steps: int = 100) -> dict
 
 
 def tokenops_config_steering_trajectory(*, limit_micros: int, max_steps: int = 100) -> dict[str, Any]:
-    """Steering stack + trajectory_hint (bench opt-in; requires Store in build_governor)."""
+    """Steering stack + trajectory_hint.
+
+    TEMPORARILY DISABLED: ``trajectory_hint`` is refused by ``config.build_governor``
+    during the remote-only control-plane work (see that function and
+    ``docs/policies/trajectory_hint.md``). This preset is kept for when it is
+    re-enabled; using it now will fail at governor build.
+    """
     del max_steps
+    raise NotImplementedError(
+        "steering_trajectory preset is disabled while trajectory_hint is turned off "
+        "(remote-only control-plane work); use 'steering' instead."
+    )
     policies = _steering_policies(limit_micros=limit_micros)
     policies["trajectory_hint"] = {
         "enabled": True,

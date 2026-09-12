@@ -1,4 +1,10 @@
-"""trajectory_hint policy — lookup, inject, and background index build."""
+"""trajectory_hint policy — lookup, inject, and background index build.
+
+TEMPORARILY DISABLED: ``trajectory_hint`` is turned off in ``config.build_governor``
+during the remote-only control-plane work (see that function and
+``docs/policies/trajectory_hint.md``). These tests are kept intact as the behaviour
+spec for when it is re-enabled.
+"""
 
 from __future__ import annotations
 
@@ -13,6 +19,11 @@ from tokenops.control.models import RunRecord, RunRegistration
 from tokenops.control.policies.trajectory_hint import build as build_trajectory_hint
 from tokenops.control.trajectory.enqueue import enqueue_completed_run
 from tokenops.control.trajectory.scope import input_hash, scope_key
+
+pytestmark = pytest.mark.skip(
+    reason="trajectory_hint disabled during remote-only control-plane work; "
+    "see config.build_governor"
+)
 
 HINT_CFG = {
     "governance": {

@@ -1,5 +1,15 @@
 # trajectory_hint — warm-start INJECT from prior successful runs
 
+> **⛔ TEMPORARILY DISABLED (remote-only control-plane work).**
+> `config.build_governor` now *refuses* a config that contains `trajectory_hint`.
+> It is the only cross-run policy — it needs a persistent index the HTTP plane does
+> not yet serve (`HttpStore` no-ops the three trajectory methods), and its Phase-1
+> quality gates are known-insufficient (see Learnings below). The policy code and the
+> `tokenops.control.trajectory/*` package are left intact. Re-enable once the plane
+> grows real trajectory snapshot/index routes **and** a quality gate: restore the
+> build branch in `config.build_governor`, the `steering_trajectory` bench preset, and
+> the skipped tests (`test_trajectory_hint*.py`).
+
 Companion to `halt.md`. **Opt-in — disabled by default.**
 
 Code: ``src/tokenops/control/policies/trajectory_hint.py``
