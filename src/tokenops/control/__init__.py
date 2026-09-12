@@ -63,6 +63,14 @@ from tokenops.control.integration import (
     wrap_stream,
 )
 from tokenops.control.ledger import Budget, Ledger, RunState, segment_key
+from tokenops.control.ledger_backend import (
+    AggregateState,
+    ApplyResult,
+    HttpLedgerBackend,
+    LedgerBackend,
+    LedgerEvent,
+    PrecheckRequest,
+)
 
 # Process-wide: re-attach after every reset_session (Chronicle clears on_crossing).
 install_crossing_hook()
@@ -106,6 +114,13 @@ __all__ = [
     "Ledger",
     "RunState",
     "segment_key",
+    # ledger backend (remote-only)
+    "LedgerBackend",
+    "HttpLedgerBackend",
+    "LedgerEvent",
+    "PrecheckRequest",
+    "AggregateState",
+    "ApplyResult",
     # harness
     "Governor",
     "RaiseControls",
