@@ -20,12 +20,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `[contract]` optional-dependency group (`agentplane-control-plane>=0.2.0`). Kept out
   of `[dev]` while the 0.2.0 line is unreleased; the plane-backed tests
   `importorskip("control_plane")`, so `[dev]`-only CI stays green.
-- `Ledger.close_run(run_id)` — drops the per-process `RunState`; called by
+- `Ledger.close_run(run_id)` — drops the per-process `LocalRunState`; called by
   `tokenops_run` on scope exit so a long-lived / shared-governor process does not
   accumulate per-run window state (#115).
+- `PolicyInstance.data_scope` (`local` | `global`, default `local`) — which tier a
+  policy's detector reads: Tier-1 `LocalRunState` cache, or the plane's authoritative
+  state via `precheck` (#118). Persisted (`policy_instances.data_scope`, additive
+  migration) and round-tripped through `governance_config_for`; not yet consumed by
+  `build_governor` — the Governor doesn't group detectors by scope until the
+  `LedgerBackend` rewire lands.
+- `Ledger(backend=...)` — routes every write through `LedgerBackend.apply_events` and
+  every spend/inflight/halt read through `read_state` (`precheck`), alongside the
+  existing `store=`/in-memory modes (mutually exclusive with `store`) (#118).
+  `step`/`spent_add` batch together per crossing so the ack's `totals` cover the run
+  total in one round trip; `admit`/`complete`/`halt_mark`/`halt_clear` are separate
+  one-shot writes. `velocity`/`recent`/`window`/`step_count` stay Tier-1-only (never a
+  backend round trip) — those are inherently local, per-process reads. Not yet wired
+  into `build_governor`/`ControlPlaneClient`; `tests/test_ledger_backend_mode.py`
+  exercises it directly against `FakeLedgerBackend`, including two `Ledger` instances
+  sharing one backend (the cross-process case).
+- `tokenops.control.dev_plane` — launches a real `agentplane-control-plane` on a real
+  localhost TCP port, in-process. Used by `tokenops.demo` (below) and by
+  `tests/conftest.py::live_plane_url` for tests that must exercise
+  `ControlPlaneClient.from_env()` itself (an in-process ASGI app isn't reachable that
+  way — `from_env()` builds its own plain `httpx.Client`).
 
 ### Changed
 
+- **tokenops has no ledger of its own anymore (#118) — `ControlPlaneClient.from_env()`
+  requires `CONTROL_PLANE_URL`/`TOKENOPS_URL` and raises if neither is set.** There is
+  no more `TOKENOPS_EMBEDDED` env var and no code path left that silently falls back to
+  a local SQLite ledger; `build_governor`/`tokenops_run` construct `Ledger(backend=...)`
+  (an `HttpLedgerBackend`, i.e. real `precheck`/`events:batch` traffic to the plane) for
+  every live run. The `store=` constructor kwarg on `ControlPlaneClient`/`tokenops_run`
+  remains as an explicit, visible test-only escape hatch (dependency injection for unit
+  tests that don't want a running plane) — it is never reachable from `from_env()`, so
+  no environment misconfiguration can select it.
+- `should_mount_run_registration()` always returns `False` now — registration is
+  always centralized on the plane; there's no embedded mode left for an agent to
+  self-host `POST /v1/runs` under.
+- `tokenops.demo` (`python -m tokenops.demo`) launches a real control plane in-process
+  (`tokenops.control.dev_plane`) instead of using the now-removed embedded ledger, and
+  configures its budget/policy over the plane's own HTTP API (`PUT /v1/budgets` /
+  `PUT /v1/policies`) — the zero-setup promise holds, but needs
+  `agentplane-control-plane` importable (`pip install "agent-tokenops[contract]"` today,
+  or once released; otherwise point `CONTROL_PLANE_URL` at a plane you're already
+  running).
+- CI now installs `agentplane-control-plane` straight from the control-plane repo
+  (`git+https://github.com/theagentplane/control-plane@main`) in addition to
+  `.[dev,contract]` — the `[contract]` tests and the `tests/examples/` e2e suite
+  (`tests/conftest.py::live_plane_url`) now actually run a real control plane in CI
+  instead of silently skipping; they're load-bearing coverage now, not optional.
+- `tests/examples/test_bench_e2e.py` and `tests/examples/test_triad_e2e.py` now
+  configure their policies/budgets on a real, in-process control plane
+  (`live_plane_url`) over its own HTTP API (`PUT /v1/budgets` / `PUT /v1/policies`)
+  instead of a local `Store` under `TOKENOPS_EMBEDDED=1` — these are now the concrete
+  demonstration that governance policies configured on the plane reach a live,
+  multi-agent run and HALT/steer it (step_cap, cost_budget, output_runaway CANCEL+RETRY,
+  tool_output_cap deep swap), not just that the plumbing compiles.
+
+- `Ledger`'s `RunState` renamed `LocalRunState` (#118, locked decision #9) — makes the
+  two-tier model explicit ahead of the `LedgerBackend` rewire: this is the per-process
+  Tier-1 cache, not the plane's authoritative `run_state`.
 - `Ledger.record` no longer writes a zero-delta spend row for non-priced crossings
   (tool calls, un-rolled-up delegates) — a free crossing is a *step*, not spend. The
   cost ledger only moves on priced events (#118).
