@@ -150,14 +150,27 @@ def build_governor(
         if name not in _TEMPLATES and name != "trajectory_hint":
             raise ValueError(f"unknown policy {name!r}; known: {sorted(_TEMPLATES)}")
         if name == "trajectory_hint":
-            # Opt-in only: excluded from default.yaml; build() defaults enabled=False.
-            if store is None:
-                raise ValueError("trajectory_hint requires store=... in build_governor")
-            from tokenops.control.policies.trajectory_hint import build as build_trajectory_hint
-
-            detector, policy = build_trajectory_hint(store, **(params or {}))
-        else:
-            detector, policy = _TEMPLATES[name](params or {}, ctx)
+            # TEMPORARILY DISABLED as part of the remote-only control-plane work
+            # (scratch/remote-only-control-plane-plan.md, Part 9). trajectory_hint is the
+            # only cross-run policy: it needs a persistent index that HttpStore currently
+            # no-ops, and its Phase-1 quality gates are known-insufficient
+            # (docs/policies/trajectory_hint.md). Rather than ship it silently inert
+            # against the HTTP plane, refuse to build it. The policy + trajectory/*
+            # package are left intact — re-enable once the plane grows real
+            # trajectory snapshot/index routes and a quality gate. See TokenOps #113/#114
+            # tracking and docs/policies/trajectory_hint.md "Phase 2".
+            #
+            # Original wiring, restore when re-enabling:
+            #   if store is None:
+            #       raise ValueError("trajectory_hint requires store=... in build_governor")
+            #   from tokenops.control.policies.trajectory_hint import build as build_trajectory_hint
+            #   detector, policy = build_trajectory_hint(store, **(params or {}))
+            raise ValueError(
+                "trajectory_hint is temporarily disabled (remote-only control-plane work); "
+                "remove it from your governance config. See "
+                "docs/policies/trajectory_hint.md and config.build_governor for details."
+            )
+        detector, policy = _TEMPLATES[name](params or {}, ctx)
         governor.register(detector, policy)
 
     return governor

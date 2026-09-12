@@ -7,17 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `tokenops.control.ledger_backend` — the `LedgerBackend` protocol and
+  `HttpLedgerBackend` for the remote-only rewrite (#118). One interface for every
+  control-plane read/write; `apply_events(list[LedgerEvent])` is the only write path
+  (a future buffered backend wraps it). Targets `agentplane-control-plane` 0.2.0
+  (`precheck` / `events:batch`). Not yet wired into `Ledger` / `ControlPlaneClient`.
+- `tests/fakes.py::FakeLedgerBackend` (in-memory) + `tests/test_ledger_backend_contract.py`
+  — parametrised over the fake and a real `control_plane.app` (in-process ASGI) so the
+  fake can't drift from the plane.
+- `[contract]` optional-dependency group (`agentplane-control-plane>=0.2.0`). Kept out
+  of `[dev]` while the 0.2.0 line is unreleased; the plane-backed tests
+  `importorskip("control_plane")`, so `[dev]`-only CI stays green.
+- `Ledger.close_run(run_id)` — drops the per-process `RunState`; called by
+  `tokenops_run` on scope exit so a long-lived / shared-governor process does not
+  accumulate per-run window state (#115).
+
 ### Changed
 
 - `Ledger.record` no longer writes a zero-delta spend row for non-priced crossings
   (tool calls, un-rolled-up delegates) — a free crossing is a *step*, not spend. The
   cost ledger only moves on priced events (#118).
-
-### Added
-
-- `Ledger.close_run(run_id)` — drops the per-process `RunState`; called by
-  `tokenops_run` on scope exit so a long-lived / shared-governor process does not
-  accumulate per-run window state (#115).
 
 ## [0.2.1] - 2026-09-04
 

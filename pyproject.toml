@@ -56,6 +56,14 @@ dev = [
   "pre-commit>=4.0",
   "types-PyYAML>=6.0",
 ]
+# The verified-fake contract suite + e2e run against a real control plane in-process.
+# Not in `dev` because the 0.2.0 line is not on PyPI yet — the tests that need it
+# `pytest.importorskip("control_plane")`, so `[dev]` alone stays green. To run them:
+#   pip install -e ".[dev,contract]"      # once 0.2.0 is released, or
+#   pip install "agentplane-control-plane @ git+https://github.com/theagentplane/control-plane@main"
+contract = [
+  "agentplane-control-plane>=0.2.0",
+]
 examples = [
   "ddgs>=9.0",
   "langchain-core>=0.3",
