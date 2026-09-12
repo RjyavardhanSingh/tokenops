@@ -207,6 +207,16 @@ class Ledger:
         with self._lock:
             self.runs[run_id] = RunState(parent_run=parent_run)
 
+    def close_run(self, run_id: str) -> None:
+        """Drop the per-process :class:`RunState` for a finished run. Idempotent.
+
+        ``tokenops_run`` calls this on scope exit for the run it opened, so a
+        long-lived / shared-governor process does not accumulate ``RunState``
+        entries (each holds a full ``window`` of ``BoundaryStep``s).
+        """
+        with self._lock:
+            self.runs.pop(run_id, None)
+
     def admit(self, segment_key: str) -> None:
         """A call for this segment has started (concurrency)."""
         with self._lock:
@@ -243,13 +253,16 @@ class Ledger:
             elif obs.node_type == "delegate":
                 cost = obs.rolled_up_cost_micros  # child run total rolls up into the parent
 
-            # One event can feed many accumulators (incl. the system run-total) — that is why
-            # spend lives in the map, not on the run object.
-            for b in self._budgets:
-                sk = segment_key(obs.attr, b)
-                if sk is None:
-                    continue
-                self._write_spent_delta(b.budget_id, sk, b.period, cost)
+            # One event can feed many accumulators (incl. the system run-total) — that is
+            # why spend lives in the map, not on the run object. A zero-cost crossing
+            # (tool call, delegate with no rollup) must not touch the cost ledger — it is
+            # a *step*, not spend.
+            if cost > 0:
+                for b in self._budgets:
+                    sk = segment_key(obs.attr, b)
+                    if sk is None:
+                        continue
+                    self._write_spent_delta(b.budget_id, sk, b.period, cost)
 
             rs.steps += 1
             cum = self._read_spent(

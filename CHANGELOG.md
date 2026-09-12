@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `[contract]` optional-dependency group (`agentplane-control-plane>=0.2.0`). Kept out
   of `[dev]` while the 0.2.0 line is unreleased; the plane-backed tests
   `importorskip("control_plane")`, so `[dev]`-only CI stays green.
+- `Ledger.close_run(run_id)` — drops the per-process `RunState`; called by
+  `tokenops_run` on scope exit so a long-lived / shared-governor process does not
+  accumulate per-run window state (#115).
+
+### Changed
+
+- `Ledger.record` no longer writes a zero-delta spend row for non-priced crossings
+  (tool calls, un-rolled-up delegates) — a free crossing is a *step*, not spend. The
+  cost ledger only moves on priced events (#118).
 
 ## [0.2.1] - 2026-09-04
 
