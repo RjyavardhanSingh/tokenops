@@ -37,6 +37,7 @@ from tokenops.control.policies import (
     pre_call_worst_case,
     progress_guard,
     step_cap,
+    time_budget,
     tool_fix,
     tool_output_cap,
 )
@@ -203,6 +204,26 @@ def test_it_step_cap_halts_at_max_steps():
     assert (
         len(calls) == 2
     )  # second call dispatches then observe HALTs; or halt on observe of step 2
+
+
+def test_time_budget_halts_run():
+    controls = ApplyControls()
+    gov = Governor(Ledger(budgets=[], price=toy_price), controls)
+    gov.register(*time_budget.build(max_seconds=0.0))
+    attr = _attr("r-tb")
+    gov.ledger.open_run("r-tb")
+    dispatch, calls = _dispatch()
+    governed = _governed(gov, attr, dispatch, run_id="r-tb")
+
+    def run():
+        # The ledger records the step before observe fires, so elapsed=0.0 >= 0.0
+        # trips on the first call.
+        with pytest.raises(Halt):
+            governed("openai", "gpt-4o-mini", [{"role": "user", "content": "1"}])
+
+    _with_scope(gov, attr, "r-tb", run)
+    assert gov.ledger.is_halted("r-tb")
+    assert len(calls) == 1
 
 
 def test_it_concurrency_cap_rejects_when_inflight_saturated():

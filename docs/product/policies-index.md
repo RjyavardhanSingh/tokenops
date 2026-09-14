@@ -15,6 +15,7 @@ Canonical per-policy docs live under [`docs/policies/`](../policies/). Product o
 | `context_compaction` | [context_compaction.md](../policies/context_compaction.md) |
 | `output_runaway` | [output_runaway.md](../policies/output_runaway.md) |
 | `trajectory_hint` | [trajectory_hint.md](../policies/trajectory_hint.md) |
+| `time_budget` | [time_budget.md](../policies/time_budget.md) |
 
 Actuators (HALT · MUTATE · INJECT · REJECT/QUEUE): see [`docs/control-plane-status.md`](../control-plane-status.md) and [`docs/governance-policy.md`](../governance-policy.md).
 
