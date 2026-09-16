@@ -92,7 +92,9 @@ class ContextCompactionPolicy(Policy):
         from tokenops.control.context import current_controls
 
         controls = current_controls()
-        compaction_supported = getattr(controls, "compaction_supported", False) if controls else False
+        compaction_supported = (
+            getattr(controls, "compaction_supported", False) if controls else False
+        )
         if not compaction_supported:
             if not ContextCompactionPolicy._telemetry_only_logged:
                 _log.warning(
