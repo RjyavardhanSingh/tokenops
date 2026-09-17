@@ -63,6 +63,8 @@ class LedgerEvent(TypedDict, total=False):
     tags: dict[str, str]
     tool_signature: str
     result_hash: str
+    # compaction
+    compaction: dict[str, int]
     # halt_mark
     reason: str
     detector: str

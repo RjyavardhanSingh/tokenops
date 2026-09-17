@@ -95,6 +95,7 @@ class _ResolvedCall:
     model_override: str | None = None
     max_output_tokens: int | None = None
     compact: bool = False  # deep MUTATE: rewrite the outgoing messages (context_compaction)
+    compaction: dict[str, int] | None = None  # tokens_before/after/saved from compaction
 
 
 @dataclass

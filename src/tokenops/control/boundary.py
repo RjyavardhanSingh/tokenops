@@ -56,6 +56,7 @@ def observation_from_crossing(
     model: str = "",
     ts: float | None = None,
     extra_tags: Mapping[str, str] | None = None,
+    compaction: Mapping[str, int] | None = None,
 ) -> Observation:
     reg = require_registration()
     attr = _build_attribution(reg, service=service)
@@ -102,7 +103,7 @@ def observation_from_crossing(
         raw_roll = getattr(result, "rolled_up_cost_micros", None)
         if raw_roll is None:
             raw_roll = input_state.get("rolled_up_cost_micros", 0)
-        rolled_up = int(raw_roll) if isinstance(raw_roll, (int, float, str)) else 0
+        rolled_up = int(raw_roll) if isinstance(raw_roll, int | float | str) else 0
         output = dict(result) if isinstance(result, dict) else {"result": str(result)}
 
     return Observation(
@@ -119,6 +120,7 @@ def observation_from_crossing(
         result_hash=result_hash,
         rolled_up_cost_micros=rolled_up,
         boundary_tags=tags,
+        compaction=compaction,
         **_span_fields(service),
     )
 

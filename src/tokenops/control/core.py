@@ -137,6 +137,8 @@ class Observation:
     result_hash: str | None = None
     # delegate only: child run total reported up the A2A hop
     rolled_up_cost_micros: Micros = 0
+    # compaction only: tokens_before / tokens_after / tokens_saved
+    compaction: Mapping[str, int] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)

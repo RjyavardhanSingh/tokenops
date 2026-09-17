@@ -224,6 +224,8 @@ def _step_event(obs: Observation, seq: int, cost: Micros) -> LedgerEvent:
         event["tool_signature"] = obs.signature
     if obs.result_hash is not None:
         event["result_hash"] = obs.result_hash
+    if obs.compaction is not None:
+        event["compaction"] = dict(obs.compaction)
     return event
 
 

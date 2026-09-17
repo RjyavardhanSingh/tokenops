@@ -375,6 +375,46 @@ def test_it_context_compaction_rewrites_messages_via_wrap():
     assert any(m.get("content") == "unique" for m in sent)
 
 
+def test_it_context_compaction_records_tokens_in_ledger_event():
+    """Compaction metadata (tokens_before / tokens_after / tokens_saved) flows through
+    wrap_complete → crossing hook → Observation → step event in the ledger."""
+    from fakes import FakeLedgerBackend
+
+    backend = FakeLedgerBackend()
+    controls = ApplyControls()
+    gov = Governor(Ledger(price=toy_price, backend=backend), controls)
+    gov.register(*context_compaction.build(ctx_max=10))  # tiny ctx → always trips
+    attr = _attr("r-cc-meta")
+    gov.ledger.open_run("r-cc-meta")
+    dispatch, calls = _dispatch(inp=80, out=20)
+    governed = _governed(gov, attr, dispatch, run_id="r-cc-meta")
+    msgs = [
+        {"role": "system", "content": "sys"},
+        {"role": "user", "content": "dup"},
+        {"role": "user", "content": "dup"},
+        {"role": "user", "content": "unique"},
+    ]
+
+    def run():
+        governed("openai", "gpt-4o-mini", msgs)
+
+    _with_scope(gov, attr, "r-cc-meta", run)
+
+    # Verify the step event in the backend carries compaction metadata
+    state = backend._run_state.get("r-cc-meta")
+    assert state is not None
+    recent = state["recent"]
+    assert len(recent) >= 1
+    llm_step = recent[-1]
+    assert llm_step.get("node_type") == "llm"
+    comp = llm_step.get("compaction")
+    assert comp is not None, "compaction metadata missing from step event"
+    assert comp["tokens_before"] > 0
+    assert comp["tokens_after"] > 0
+    assert comp["tokens_saved"] >= 0
+    assert comp["tokens_saved"] == comp["tokens_before"] - comp["tokens_after"]
+
+
 def test_it_output_runaway_retries_then_succeeds():
     controls = ApplyControls()
     gov = Governor(Ledger(price=toy_price), controls)

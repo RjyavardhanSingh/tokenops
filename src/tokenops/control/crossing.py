@@ -151,6 +151,15 @@ def on_crossing(
     # MUTATE model overrides price correctly; fall back to bound governance.
     provider = str(state.get("provider") or (gov.provider if gov else "") or "")
     model = str(state.get("model") or (gov.model if gov else "") or "")
+    # Compaction metadata: carried from _compact_messages via controls.call
+    compaction = None
+    governor = getattr(gov, "governor", None)
+    controls = getattr(governor, "controls", None)
+    if controls is not None:
+        call = getattr(controls, "call", None)
+        comp = getattr(call, "compaction", None) if call is not None else None
+        if comp is not None:
+            compaction = dict(comp)
     obs = observation_from_crossing(
         boundary_id=boundary_id,
         kind=kind,
@@ -159,6 +168,7 @@ def on_crossing(
         result=result,
         provider=provider,
         model=model,
+        compaction=compaction,
     )
     emit_observation(obs)
 

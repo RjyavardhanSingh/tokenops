@@ -162,6 +162,7 @@ class FakeLedgerBackend:
                             "tool_signature",
                             "result_hash",
                             "ts",
+                            "compaction",
                         )
                         if ev.get(k) is not None
                     }
