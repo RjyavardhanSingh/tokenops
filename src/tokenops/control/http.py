@@ -16,7 +16,7 @@ from typing import Any
 
 import httpx
 from chronicle.session import reset_session
-from fastapi import FastAPI, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from tokenops.control.core import Halt
@@ -93,11 +93,28 @@ def _run_to_csv_row(rec):  # type: ignore[no-untyped-def]
     return [d.get(col, "") for col in _EXPORT_CSV_COLUMNS]
 
 
+def _expected_api_key() -> str:
+    return (
+        os.environ.get("CONTROL_PLANE_API_KEY") or os.environ.get("TOKENOPS_API_KEY") or ""
+    ).strip()
+
+
+def _require_auth(request: Request) -> None:
+    """FastAPI dependency — reject requests without a valid Bearer token."""
+    expected = _expected_api_key()
+    if not expected:
+        return
+    auth = request.headers.get("authorization", "")
+    if not auth.startswith("Bearer ") or auth[7:].strip() != expected:
+        raise HTTPException(status_code=401, detail="unauthorized")
+
+
 def mount_export(app: FastAPI, store: Store) -> None:
     """Mount ``GET /v1/export`` — on-demand run-record export (CSV / JSON)."""
 
-    @app.get("/v1/export")
+    @app.get("/v1/export", dependencies=[Depends(_require_auth)])
     def export_runs(
+        request: Request,
         from_at: float | None = Query(None, description="Start timestamp (epoch seconds)"),
         to_at: float | None = Query(None, description="End timestamp (epoch seconds)"),
         agent: str | None = Query(None, description="Filter by agent name"),
@@ -106,12 +123,14 @@ def mount_export(app: FastAPI, store: Store) -> None:
         format: str = Query("json", description="Output format: json or csv"),
         limit: int = Query(5000, ge=1, le=10_000, description="Max rows to return"),
     ) -> Response:
+        caller_tenant = request.headers.get("x-tokenops-tenant")
+        effective_tenant = caller_tenant or tenant
         runs = store.export_runs(
             from_at=from_at,
             to_at=to_at,
             agent=agent,
             status=status,
-            tenant=tenant,
+            tenant=effective_tenant,
             limit=limit,
         )
 

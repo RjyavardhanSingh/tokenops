@@ -326,3 +326,108 @@ def test_export_runs_filters_to_date_string(store):
     result = store.export_runs(to_at="2023-11-15")
     assert len(result) == 1
     assert result[0].run_id == "r1"
+
+
+# ------------------------------------------------------------------ #
+# Auth + tenant scoping integration tests                            #
+# ------------------------------------------------------------------ #
+
+
+def test_export_requires_auth_when_configured(store, tmp_path, monkeypatch):
+    """When CONTROL_PLANE_API_KEY is set, requests without a valid token get 401."""
+    from fastapi.testclient import TestClient
+
+    from tokenops.server.app import create_app
+
+    monkeypatch.setenv("CONTROL_PLANE_API_KEY", "secret-key")
+    _make_run(store, run_id="r1", agent="a", started_at=100)
+    app = create_app(store=store)
+    client = TestClient(app)
+
+    resp = client.get("/v1/export")
+    assert resp.status_code == 401
+
+    resp = client.get("/v1/export", headers={"Authorization": "Bearer wrong"})
+    assert resp.status_code == 401
+
+    resp = client.get("/v1/export", headers={"Authorization": "Bearer secret-key"})
+    assert resp.status_code == 200
+    assert len(resp.json()) == 1
+
+
+def test_export_no_auth_when_key_unset(store, tmp_path, monkeypatch):
+    """When no API key is configured, auth is skipped (dev mode)."""
+    from fastapi.testclient import TestClient
+
+    from tokenops.server.app import create_app
+
+    monkeypatch.delenv("CONTROL_PLANE_API_KEY", raising=False)
+    monkeypatch.delenv("TOKENOPS_API_KEY", raising=False)
+    _make_run(store, run_id="r1", agent="a", started_at=100)
+    app = create_app(store=store)
+    client = TestClient(app)
+
+    resp = client.get("/v1/export")
+    assert resp.status_code == 200
+
+
+def test_export_tenant_scoping_via_header(store, tmp_path, monkeypatch):
+    """X-TokenOps-Tenant header restricts results to that tenant."""
+    from fastapi.testclient import TestClient
+
+    from tokenops.server.app import create_app
+
+    monkeypatch.delenv("CONTROL_PLANE_API_KEY", raising=False)
+    monkeypatch.delenv("TOKENOPS_API_KEY", raising=False)
+    _make_run(store, run_id="r1", dims={"tenant": "acme"}, started_at=100)
+    _make_run(store, run_id="r2", dims={"tenant": "globex"}, started_at=200)
+    _make_run(store, run_id="r3", dims={}, started_at=300)
+    app = create_app(store=store)
+    client = TestClient(app)
+
+    resp = client.get("/v1/export", headers={"X-TokenOps-Tenant": "acme"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["run_id"] == "r1"
+
+
+def test_export_tenant_scoping_via_query_param(store, tmp_path, monkeypatch):
+    """tenant query param restricts results to that tenant."""
+    from fastapi.testclient import TestClient
+
+    from tokenops.server.app import create_app
+
+    monkeypatch.delenv("CONTROL_PLANE_API_KEY", raising=False)
+    monkeypatch.delenv("TOKENOPS_API_KEY", raising=False)
+    _make_run(store, run_id="r1", dims={"tenant": "acme"}, started_at=100)
+    _make_run(store, run_id="r2", dims={"tenant": "globex"}, started_at=200)
+    app = create_app(store=store)
+    client = TestClient(app)
+
+    resp = client.get("/v1/export?tenant=globex")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["run_id"] == "r2"
+
+
+def test_export_tenant_header_overrides_query_param(store, tmp_path, monkeypatch):
+    """When both header and query param are set, header wins (more restrictive)."""
+    from fastapi.testclient import TestClient
+
+    from tokenops.server.app import create_app
+
+    monkeypatch.delenv("CONTROL_PLANE_API_KEY", raising=False)
+    monkeypatch.delenv("TOKENOPS_API_KEY", raising=False)
+    _make_run(store, run_id="r1", dims={"tenant": "acme"}, started_at=100)
+    _make_run(store, run_id="r2", dims={"tenant": "globex"}, started_at=200)
+    app = create_app(store=store)
+    client = TestClient(app)
+
+    # Header says acme, query says globex — header wins, returns acme runs
+    resp = client.get("/v1/export?tenant=globex", headers={"X-TokenOps-Tenant": "acme"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["run_id"] == "r1"
